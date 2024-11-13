@@ -3,35 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur de Textures Bloxd.io</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Générateur de Terrain 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Générateur de Textures Bloxd.io</h1>
-    </header>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, terrain;
 
-    <main>
-        <form id="textureForm">
-            <label for="textureDescription">Description de la texture :</label>
-            <input type="text" id="textureDescription" placeholder="Décrivez la texture souhaitée" required>
+        // Fonction de génération de terrain aléatoire
+        function generateTerrain() {
+            const size = 100;
+            const geometry = new THREE.PlaneGeometry(size, size, size - 1, size - 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x228B22, wireframe: true });
+            terrain = new THREE.Mesh(geometry, material);
+            terrain.rotation.x = -Math.PI / 2; // Orientation du terrain
+            terrain.position.y = -5;
 
-            <label for="textureSize">Taille de la texture (px) :</label>
-            <input type="number" id="textureSize" value="8" min="1" max="64" required>
+            // Modifie les hauteurs du terrain
+            for (let i = 0; i < geometry.vertices.length; i++) {
+                const vertex = geometry.vertices[i];
+                vertex.z = Math.random() * 10; // Variation aléatoire de la hauteur
+            }
 
-            <button type="submit">Générer Texture</button>
-        </form>
+            geometry.computeFaceNormals(); // Calcul des normales pour l'éclairage
+            geometry.computeVertexNormals(); // Calcul des normales des sommets
+            scene.add(terrain);
+        }
 
-        <div id="generatedTexture">
-            <h3>Texture générée :</h3>
-            <canvas id="textureCanvas" width="64" height="64"></canvas>
-        </div>
-    </main>
+        // Initialisation de la scène
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-    <footer>
-        <p>Créé par Cazozozop - Bloxd.io</p>
-    </footer>
+            // Ajouter une lumière à la scène
+            const light = new THREE.AmbientLight(0x404040, 2); // lumière douce
+            scene.add(light);
 
-    <script src="script.js"></script>
+            // Position de la caméra
+            camera.position.z = 50;
+
+            // Générer le terrain
+            generateTerrain();
+
+            // Animation de la scène
+            animate();
+        }
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Rotation du terrain
+            terrain.rotation.y += 0.01;
+
+            renderer.render(scene, camera);
+        }
+
+        // Gérer le redimensionnement de la fenêtre
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Appel de la fonction d'initialisation
+        init();
+    </script>
 </body>
 </html>
