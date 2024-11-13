@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Système Solaire Aléatoire</title>
+    <title>Système Solaire avec Rayons Lumineux</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -14,7 +14,7 @@
     <script>
         let scene, camera, renderer, sun, planets = [], stars = [], meteorites = [];
         let clock = new THREE.Clock();
-        let godRays;
+        let godRays = [];
 
         function init() {
             // Créer la scène
@@ -35,9 +35,9 @@
             scene.add(light);
 
             // Créer des étoiles de fond
-            createStars(200);
+            createStars(500);
 
-            // Créer le soleil avec des rayons lumineux
+            // Créer le soleil avec des effets volumétriques
             createSun();
 
             // Créer des planètes
@@ -64,30 +64,48 @@
             }
         }
 
-        // Fonction pour créer le soleil avec rayons lumineux
+        // Fonction pour créer le soleil avec des effets de rayons lumineux
         function createSun() {
+            // Création du soleil avec un matériau émissif
             const geometry = new THREE.SphereGeometry(5, 32, 32);
             const material = new THREE.MeshStandardMaterial({
                 color: 0xffff00,
                 emissive: 0xffff00,
-                emissiveIntensity: 1
+                emissiveIntensity: 2
             });
             sun = new THREE.Mesh(geometry, material);
             sun.position.set(0, 0, 0);
             scene.add(sun);
 
             // Création des rayons lumineux (effet God Ray)
-            const godRayGeometry = new THREE.CylinderGeometry(0.1, 0.1, 100, 100);
-            const godRayMaterial = new THREE.MeshBasicMaterial({
-                color: 0xffff00,
-                transparent: true,
-                opacity: 0.1
-            });
+            createGodRays();
+        }
 
-            godRays = new THREE.Mesh(godRayGeometry, godRayMaterial);
-            godRays.position.set(0, 0, 0);
-            godRays.rotation.x = Math.PI / 2;
-            scene.add(godRays);
+        // Fonction pour créer les rayons lumineux
+        function createGodRays() {
+            const rayCount = 20;  // Nombre de rayons lumineux
+            for (let i = 0; i < rayCount; i++) {
+                const geometry = new THREE.CylinderGeometry(0.05, 0.05, 100, 10);
+                const material = new THREE.MeshBasicMaterial({
+                    color: 0xffff00,
+                    transparent: true,
+                    opacity: 0.05,
+                    blending: THREE.AdditiveBlending
+                });
+
+                // Création des rayons et positionnement
+                const ray = new THREE.Mesh(geometry, material);
+                ray.position.set(0, 0, 0);
+                ray.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+                // Positionner les rayons dans la scène avec un léger mouvement pour l'effet
+                ray.position.x = Math.random() * 50 - 25;
+                ray.position.y = Math.random() * 50 - 25;
+                ray.position.z = Math.random() * 50 - 25;
+
+                godRays.push(ray);
+                scene.add(ray);
+            }
         }
 
         // Fonction pour créer des planètes aléatoires
@@ -143,6 +161,11 @@
             stars.forEach(star => {
                 star.rotation.x += 0.0005;
                 star.rotation.y += 0.0005;
+            });
+
+            // Rotation des rayons lumineux
+            godRays.forEach(ray => {
+                ray.rotation.z += 0.01;
             });
 
             // Mise à jour de la caméra
