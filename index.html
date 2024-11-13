@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur de Textures Bloxd.io</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Générateur de Textures Bloxd.io</h1>
+    </header>
+
+    <main>
+        <form id="textureForm">
+            <label for="textureDescription">Description de la texture :</label>
+            <input type="text" id="textureDescription" placeholder="Décrivez la texture souhaitée" required>
+
+            <label for="textureSize">Taille de la texture (px) :</label>
+            <input type="number" id="textureSize" value="8" min="1" max="64" required>
+
+            <button type="submit">Générer Texture</button>
+        </form>
+
+        <div id="generatedTexture">
+            <h3>Texture générée :</h3>
+            <canvas id="textureCanvas" width="64" height="64"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        <p>Créé par Cazozozop - Bloxd.io</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
