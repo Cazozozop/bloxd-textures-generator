@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Système Solaire Aléatoire Réaliste</title>
+    <title>Système Solaire avec Rayons du Soleil</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -47,8 +47,8 @@
             // Créer des étoiles de fond
             createStars(300);
 
-            // Créer le soleil
-            createSun();
+            // Créer le soleil avec rayons lumineux
+            createSunWithRays();
 
             // Créer des planètes
             createPlanets(5);
@@ -80,13 +80,32 @@
             }
         }
 
-        // Fonction pour créer le soleil (lumière et effet lumineux)
-        function createSun() {
-            const geometry = new THREE.SphereGeometry(8, 32, 32);
-            const material = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 1 });
-            sun = new THREE.Mesh(geometry, material);
+        // Fonction pour créer le soleil avec des rayons lumineux
+        function createSunWithRays() {
+            // Créer le soleil
+            const sunGeometry = new THREE.SphereGeometry(8, 32, 32);
+            const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 1 });
+            sun = new THREE.Mesh(sunGeometry, sunMaterial);
             sun.position.set(0, 0, 0);
             scene.add(sun);
+
+            // Créer les rayons du soleil (en utilisant des cônes)
+            const rayMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                opacity: 0.2,
+                transparent: true
+            });
+
+            for (let i = 0; i < 12; i++) {
+                const coneGeometry = new THREE.ConeGeometry(0.5, 50, 3);
+                const cone = new THREE.Mesh(coneGeometry, rayMaterial);
+                cone.rotation.x = Math.random() * Math.PI;
+                cone.rotation.y = Math.random() * Math.PI;
+                cone.rotation.z = Math.random() * Math.PI;
+                cone.position.set(0, 0, 0); // Positionner les rayons au centre du soleil
+                cone.translateZ(15); // Décaler le rayon à partir du soleil
+                scene.add(cone);
+            }
         }
 
         // Fonction pour créer des planètes espacées
