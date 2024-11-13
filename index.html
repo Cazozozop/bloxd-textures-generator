@@ -15,6 +15,53 @@
         let scene, camera, renderer, terrain, sunLight, skybox, grassShaderMaterial;
         let clock = new THREE.Clock();
 
+        // Fonction pour créer une texture procédurale pour l'herbe
+        function createGrassTexture() {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+
+            // Dégradé de vert pour l'herbe
+            const gradient = context.createLinearGradient(0, 0, 0, 128);
+            gradient.addColorStop(0, '#4CAF50');
+            gradient.addColorStop(1, '#2E7D32');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ajouter des textures simples de bruit pour l'herbe
+            context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            for (let i = 0; i < 300; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                context.fillRect(x, y, 2, 2);
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4); // Répéter la texture pour couvrir plus d'espace
+            return texture;
+        }
+
+        // Fonction de génération de la skybox procédurale
+        function createSkyboxTexture() {
+            const size = 512;
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = size;
+            canvas.height = size;
+
+            // Création d'un dégradé de ciel
+            const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(1, '#B0E0E6');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, size, size);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return texture;
+        }
+
         // Fonction de génération de terrain avec de l'herbe qui bouge
         function generateTerrain() {
             const size = 100;
@@ -31,17 +78,6 @@
             }
 
             geometry.computeVertexNormals();
-        }
-
-        // Fonction de génération de la skybox
-        function createSkybox() {
-            const loader = new THREE.CubeTextureLoader();
-            const texture = loader.load([
-                'skybox/posx.jpg', 'skybox/negx.jpg',
-                'skybox/posy.jpg', 'skybox/negy.jpg',
-                'skybox/posz.jpg', 'skybox/negz.jpg'
-            ]);
-            scene.background = texture;
         }
 
         // Fonction de génération du soleil
@@ -95,15 +131,16 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Ajouter une lumière ambiante
-            const ambientLight = new THREE.AmbientLight(0x404040, 1);
-            scene.add(ambientLight);
-
-            // Créer la skybox, le terrain et le soleil
-            createSkybox();
-            createSun();
+            // Créer la texture d'herbe, la skybox, et le soleil
+            const grassTexture = createGrassTexture();
             grassShaderMaterial = createGrassShader();
+            grassShaderMaterial.map = grassTexture; // Appliquer la texture d'herbe
+            createSun();
             generateTerrain();
+
+            // Créer une skybox procédurale
+            const skyboxTexture = createSkyboxTexture();
+            scene.background = skyboxTexture;
 
             // Positionner la caméra
             camera.position.z = 60;
@@ -117,7 +154,7 @@
             requestAnimationFrame(animate);
 
             // Animer le vent (en modifiant le temps du shader)
-            grassShaderMaterial.uniforms.time.value += clock.getDelta();
+            grassShaderMaterial.uniforms.time.value += 0.05;
 
             // Rotation du terrain pour le rendre plus dynamique
             terrain.rotation.y += 0.002;
