@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur de Terrain 3D</title>
+    <title>Générateur de Terrain Hyper Réaliste</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -12,96 +12,130 @@
 <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, terrain, sunLight, skybox;
+        let scene, camera, renderer, terrain, sun, skybox, trees = [], clouds = [];
         let clock = new THREE.Clock();
+        let wind = 0; // Vent
 
-        // Fonction pour créer une texture procédurale pour l'herbe
+        // Fonction pour créer la texture d'herbe procédurale
         function createGrassTexture() {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
-            canvas.width = 128;
-            canvas.height = 128;
+            canvas.width = 512;
+            canvas.height = 512;
 
-            // Dégradé de vert pour l'herbe
-            const gradient = context.createLinearGradient(0, 0, 0, 128);
+            const gradient = context.createLinearGradient(0, 0, 0, 512);
             gradient.addColorStop(0, '#4CAF50');
-            gradient.addColorStop(1, '#2E7D32');
+            gradient.addColorStop(0.5, '#2E7D32');
+            gradient.addColorStop(1, '#388E3C');
             context.fillStyle = gradient;
             context.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Ajouter des textures simples de bruit pour l'herbe
-            context.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            for (let i = 0; i < 300; i++) {
+            context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+            for (let i = 0; i < 500; i++) {
                 const x = Math.random() * canvas.width;
                 const y = Math.random() * canvas.height;
-                context.fillRect(x, y, 2, 2);
+                context.fillRect(x, y, 1, 1);
             }
 
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(4, 4); // Répéter la texture pour couvrir plus d'espace
+            texture.repeat.set(10, 10);
             return texture;
         }
 
-        // Fonction de génération de terrain avec de l'herbe qui bouge
-        function generateTerrain() {
-            const size = 100;
-            const geometry = new THREE.PlaneGeometry(size, size, 100, 100);
-            geometry.rotateX(-Math.PI / 2);  // Orientation du terrain
-            terrain = new THREE.Mesh(geometry, grassMaterial);
-            terrain.position.y = -5;
-            scene.add(terrain);
+        // Fonction pour créer des arbres animés avec un effet de vent
+        function createTree(x, z) {
+            const tree = new THREE.Group();
 
-            // Générer des hauteurs aléatoires
+            // Tronc de l'arbre
+            const trunkGeometry = new THREE.CylinderGeometry(1, 1, 10, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 5;
+            tree.add(trunk);
+
+            // Feuilles de l'arbre
+            const leafGeometry = new THREE.SphereGeometry(3, 8, 8);
+            const leafMaterial = new THREE.MeshStandardMaterial({
+                color: 0x228B22,
+                emissive: 0x228B22,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const leaves = new THREE.Mesh(leafGeometry, leafMaterial);
+            leaves.position.y = 12;
+            tree.add(leaves);
+
+            tree.position.set(x, 0, z);
+            scene.add(tree);
+
+            trees.push({ tree, leaves });
+        }
+
+        // Création du terrain
+        function generateTerrain() {
+            const size = 500;
+            const geometry = new THREE.PlaneGeometry(size, size, 256, 256);
+            geometry.rotateX(-Math.PI / 2);
+
+            // Hauteurs aléatoires pour simuler des montagnes
             for (let i = 0; i < geometry.vertices.length; i++) {
                 const vertex = geometry.vertices[i];
-                vertex.z = Math.random() * 5;  // Hauteur aléatoire
+                vertex.z = Math.sin(vertex.x * 0.05) * 5 + Math.cos(vertex.y * 0.05) * 5;
             }
-
             geometry.computeVertexNormals();
-        }
 
-        // Fonction de génération du soleil
-        function createSun() {
-            sunLight = new THREE.DirectionalLight(0xFFFFFF, 1);
-            sunLight.position.set(50, 50, 50);
-            scene.add(sunLight);
-        }
-
-        // Shader pour l'herbe (effet de vent)
-        function createGrassShader() {
-            const vertexShader = `
-                varying vec2 vUv;
-                varying float displacement;
-
-                void main() {
-                    vUv = uv;
-                    displacement = sin(position.x * 0.1 + time) * 0.5;  // Mouvement du vent
-                    vec3 newPosition = position + normal * displacement;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-                }
-            `;
-
-            const fragmentShader = `
-                varying vec2 vUv;
-                varying float displacement;
-
-                void main() {
-                    gl_FragColor = vec4(0.1, 0.6, 0.1 + displacement * 0.1, 1.0); // Couleur de l'herbe
-                }
-            `;
-
-            const material = new THREE.ShaderMaterial({
-                vertexShader: vertexShader,
-                fragmentShader: fragmentShader,
-                uniforms: {
-                    time: { value: 0.0 }
-                },
-                side: THREE.DoubleSide,
+            const material = new THREE.MeshStandardMaterial({
+                map: createGrassTexture(),
                 wireframe: false
             });
 
-            return material;
+            terrain = new THREE.Mesh(geometry, material);
+            terrain.position.y = -5;
+            scene.add(terrain);
+        }
+
+        // Création du soleil
+        function createSun() {
+            sun = new THREE.DirectionalLight(0xFFFFFF, 1);
+            sun.position.set(10, 50, 10);
+            sun.castShadow = true;
+            scene.add(sun);
+        }
+
+        // Création des nuages animés
+        function createClouds() {
+            const cloudGeometry = new THREE.SphereGeometry(10, 8, 8);
+            const cloudMaterial = new THREE.MeshStandardMaterial({
+                color: 0xFFFFFF,
+                opacity: 0.6,
+                transparent: true
+            });
+
+            for (let i = 0; i < 5; i++) {
+                const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+                cloud.position.set(Math.random() * 500 - 250, Math.random() * 100 + 50, Math.random() * 500 - 250);
+                clouds.push(cloud);
+                scene.add(cloud);
+            }
+        }
+
+        // Animation du vent et des arbres
+        function animateWind() {
+            wind += 0.1;
+
+            // Appliquer le vent aux arbres (déplacer les feuilles)
+            trees.forEach(({ leaves }) => {
+                leaves.rotation.x = Math.sin(wind * 0.5) * 0.1;
+                leaves.rotation.y = Math.cos(wind * 0.3) * 0.1;
+            });
+
+            // Animer les nuages
+            clouds.forEach(cloud => {
+                cloud.position.x += 0.1;
+                if (cloud.position.x > 250) cloud.position.x = -250;
+            });
         }
 
         // Initialisation de la scène
@@ -112,20 +146,22 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Créer la texture d'herbe et le shader pour l'herbe
-            const grassTexture = createGrassTexture();
-            grassMaterial = createGrassShader();
-            grassMaterial.map = grassTexture; // Appliquer la texture d'herbe
+            // Skybox (ciel)
+            scene.background = new THREE.Color(0x87CEEB); // Ciel bleu clair
 
-            // Créer le terrain, le soleil et le skybox
-            createSun();
+            // Créer le terrain, les arbres, le soleil et les nuages
             generateTerrain();
+            createSun();
+            createClouds();
 
-            // Créer une couleur de fond de ciel (skybox simple)
-            scene.background = new THREE.Color(0x87CEEB);  // Ciel bleu clair
+            // Créer des arbres au hasard
+            for (let i = 0; i < 20; i++) {
+                createTree(Math.random() * 500 - 250, Math.random() * 500 - 250);
+            }
 
             // Positionner la caméra
-            camera.position.z = 60;
+            camera.position.set(0, 50, 200);
+            camera.lookAt(0, 10, 0);
 
             // Animer la scène
             animate();
@@ -135,13 +171,8 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Animer le vent (en modifiant le temps du shader)
-            grassMaterial.uniforms.time.value += 0.05;
+            animateWind();
 
-            // Rotation du terrain pour le rendre plus dynamique
-            terrain.rotation.y += 0.002;
-
-            // Rendu de la scène
             renderer.render(scene, camera);
         }
 
