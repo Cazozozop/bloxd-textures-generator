@@ -12,7 +12,7 @@
 <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, terrain, sunLight, skybox, grassShaderMaterial;
+        let scene, camera, renderer, terrain, sunLight, skybox;
         let clock = new THREE.Clock();
 
         // Fonction pour créer une texture procédurale pour l'herbe
@@ -43,31 +43,12 @@
             return texture;
         }
 
-        // Fonction de génération de la skybox procédurale
-        function createSkyboxTexture() {
-            const size = 512;
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.width = size;
-            canvas.height = size;
-
-            // Création d'un dégradé de ciel
-            const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-            gradient.addColorStop(0, '#87CEEB');
-            gradient.addColorStop(1, '#B0E0E6');
-            context.fillStyle = gradient;
-            context.fillRect(0, 0, size, size);
-
-            const texture = new THREE.CanvasTexture(canvas);
-            return texture;
-        }
-
         // Fonction de génération de terrain avec de l'herbe qui bouge
         function generateTerrain() {
             const size = 100;
             const geometry = new THREE.PlaneGeometry(size, size, 100, 100);
             geometry.rotateX(-Math.PI / 2);  // Orientation du terrain
-            terrain = new THREE.Mesh(geometry, grassShaderMaterial);
+            terrain = new THREE.Mesh(geometry, grassMaterial);
             terrain.position.y = -5;
             scene.add(terrain);
 
@@ -131,16 +112,17 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Créer la texture d'herbe, la skybox, et le soleil
+            // Créer la texture d'herbe et le shader pour l'herbe
             const grassTexture = createGrassTexture();
-            grassShaderMaterial = createGrassShader();
-            grassShaderMaterial.map = grassTexture; // Appliquer la texture d'herbe
+            grassMaterial = createGrassShader();
+            grassMaterial.map = grassTexture; // Appliquer la texture d'herbe
+
+            // Créer le terrain, le soleil et le skybox
             createSun();
             generateTerrain();
 
-            // Créer une skybox procédurale
-            const skyboxTexture = createSkyboxTexture();
-            scene.background = skyboxTexture;
+            // Créer une couleur de fond de ciel (skybox simple)
+            scene.background = new THREE.Color(0x87CEEB);  // Ciel bleu clair
 
             // Positionner la caméra
             camera.position.z = 60;
@@ -154,11 +136,12 @@
             requestAnimationFrame(animate);
 
             // Animer le vent (en modifiant le temps du shader)
-            grassShaderMaterial.uniforms.time.value += 0.05;
+            grassMaterial.uniforms.time.value += 0.05;
 
             // Rotation du terrain pour le rendre plus dynamique
             terrain.rotation.y += 0.002;
 
+            // Rendu de la scène
             renderer.render(scene, camera);
         }
 
