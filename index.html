@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Générateur de Terrain Hyper Réaliste</title>
+    <title>Sphère et Ombre</title>
     <style>
         body { margin: 0; overflow: hidden; }
         canvas { display: block; }
@@ -12,178 +12,74 @@
 <body>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        let scene, camera, renderer, terrain, sun, skybox, trees = [], clouds = [];
-        let clock = new THREE.Clock();
-        let wind = 0; // Vent
+        let scene, camera, renderer, sphere, plane, light;
 
-        // Fonction pour créer la texture d'herbe procédurale
-        function createGrassTexture() {
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.width = 512;
-            canvas.height = 512;
-
-            const gradient = context.createLinearGradient(0, 0, 0, 512);
-            gradient.addColorStop(0, '#4CAF50');
-            gradient.addColorStop(0.5, '#2E7D32');
-            gradient.addColorStop(1, '#388E3C');
-            context.fillStyle = gradient;
-            context.fillRect(0, 0, canvas.width, canvas.height);
-
-            context.fillStyle = 'rgba(255, 255, 255, 0.1)';
-            for (let i = 0; i < 500; i++) {
-                const x = Math.random() * canvas.width;
-                const y = Math.random() * canvas.height;
-                context.fillRect(x, y, 1, 1);
-            }
-
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(10, 10);
-            return texture;
-        }
-
-        // Fonction pour créer des arbres animés avec un effet de vent
-        function createTree(x, z) {
-            const tree = new THREE.Group();
-
-            // Tronc de l'arbre
-            const trunkGeometry = new THREE.CylinderGeometry(1, 1, 10, 8);
-            const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
-            trunk.position.y = 5;
-            tree.add(trunk);
-
-            // Feuilles de l'arbre
-            const leafGeometry = new THREE.SphereGeometry(3, 8, 8);
-            const leafMaterial = new THREE.MeshStandardMaterial({
-                color: 0x228B22,
-                emissive: 0x228B22,
-                transparent: true,
-                opacity: 0.8
-            });
-
-            const leaves = new THREE.Mesh(leafGeometry, leafMaterial);
-            leaves.position.y = 12;
-            tree.add(leaves);
-
-            tree.position.set(x, 0, z);
-            scene.add(tree);
-
-            trees.push({ tree, leaves });
-        }
-
-        // Création du terrain
-        function generateTerrain() {
-            const size = 500;
-            const geometry = new THREE.PlaneGeometry(size, size, 256, 256);
-            geometry.rotateX(-Math.PI / 2);
-
-            // Hauteurs aléatoires pour simuler des montagnes
-            for (let i = 0; i < geometry.vertices.length; i++) {
-                const vertex = geometry.vertices[i];
-                vertex.z = Math.sin(vertex.x * 0.05) * 5 + Math.cos(vertex.y * 0.05) * 5;
-            }
-            geometry.computeVertexNormals();
-
-            const material = new THREE.MeshStandardMaterial({
-                map: createGrassTexture(),
-                wireframe: false
-            });
-
-            terrain = new THREE.Mesh(geometry, material);
-            terrain.position.y = -5;
-            scene.add(terrain);
-        }
-
-        // Création du soleil
-        function createSun() {
-            sun = new THREE.DirectionalLight(0xFFFFFF, 1);
-            sun.position.set(10, 50, 10);
-            sun.castShadow = true;
-            scene.add(sun);
-        }
-
-        // Création des nuages animés
-        function createClouds() {
-            const cloudGeometry = new THREE.SphereGeometry(10, 8, 8);
-            const cloudMaterial = new THREE.MeshStandardMaterial({
-                color: 0xFFFFFF,
-                opacity: 0.6,
-                transparent: true
-            });
-
-            for (let i = 0; i < 5; i++) {
-                const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
-                cloud.position.set(Math.random() * 500 - 250, Math.random() * 100 + 50, Math.random() * 500 - 250);
-                clouds.push(cloud);
-                scene.add(cloud);
-            }
-        }
-
-        // Animation du vent et des arbres
-        function animateWind() {
-            wind += 0.1;
-
-            // Appliquer le vent aux arbres (déplacer les feuilles)
-            trees.forEach(({ leaves }) => {
-                leaves.rotation.x = Math.sin(wind * 0.5) * 0.1;
-                leaves.rotation.y = Math.cos(wind * 0.3) * 0.1;
-            });
-
-            // Animer les nuages
-            clouds.forEach(cloud => {
-                cloud.position.x += 0.1;
-                if (cloud.position.x > 250) cloud.position.x = -250;
-            });
-        }
-
-        // Initialisation de la scène
         function init() {
+            // Créer la scène
             scene = new THREE.Scene();
+
+            // Créer la caméra
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            // Créer le renderer
             renderer = new THREE.WebGLRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Skybox (ciel)
-            scene.background = new THREE.Color(0x87CEEB); // Ciel bleu clair
+            // Créer la sphère
+            const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+            const sphereMaterial = new THREE.MeshStandardMaterial({ color: 0x0077ff });
+            sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+            sphere.position.y = 1;
+            scene.add(sphere);
 
-            // Créer le terrain, les arbres, le soleil et les nuages
-            generateTerrain();
-            createSun();
-            createClouds();
+            // Créer le plan (qui recevra l'ombre)
+            const planeGeometry = new THREE.PlaneGeometry(500, 500);
+            const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.5 });
+            plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = - Math.PI / 2;  // Plan horizontal
+            plane.position.y = -1;
+            scene.add(plane);
 
-            // Créer des arbres au hasard
-            for (let i = 0; i < 20; i++) {
-                createTree(Math.random() * 500 - 250, Math.random() * 500 - 250);
-            }
+            // Ajouter la lumière
+            light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(5, 5, 5);  // Positionner la lumière au-dessus
+            light.castShadow = true;
+            scene.add(light);
 
-            // Positionner la caméra
-            camera.position.set(0, 50, 200);
-            camera.lookAt(0, 10, 0);
+            // Paramétrer les ombres
+            renderer.shadowMap.enabled = true;
+            sphere.castShadow = true;
+            plane.receiveShadow = true;
 
-            // Animer la scène
+            // Écouter les changements de taille de la fenêtre
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Lancer l'animation
             animate();
         }
 
-        // Animer la scène
-        function animate() {
-            requestAnimationFrame(animate);
-
-            animateWind();
-
-            renderer.render(scene, camera);
-        }
-
-        // Gérer le redimensionnement de la fenêtre
-        window.addEventListener('resize', () => {
+        // Fonction de redimensionnement de la fenêtre
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
 
-        // Appel de la fonction d'initialisation
+        // Fonction d'animation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Rotation de la sphère pour la visualisation
+            sphere.rotation.x += 0.01;
+            sphere.rotation.y += 0.01;
+
+            // Rendu de la scène
+            renderer.render(scene, camera);
+        }
+
+        // Initialiser la scène
         init();
     </script>
 </body>
