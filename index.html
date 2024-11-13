@@ -14,6 +14,7 @@
     <script>
         let scene, camera, renderer, sun, planets = [], stars = [], meteorites = [];
         let clock = new THREE.Clock();
+        let godRays;
 
         function init() {
             // Créer la scène
@@ -28,15 +29,15 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Créer la lumière de la scène (lumière directionnelle représentant le soleil)
-            const light = new THREE.PointLight(0xffffff, 1, 100);
+            // Créer la lumière directionnelle pour le soleil avec rayons lumineux
+            const light = new THREE.PointLight(0xffffff, 2, 100);
             light.position.set(0, 0, 0);
             scene.add(light);
 
             // Créer des étoiles de fond
             createStars(200);
 
-            // Créer le soleil
+            // Créer le soleil avec des rayons lumineux
             createSun();
 
             // Créer des planètes
@@ -44,9 +45,6 @@
 
             // Créer des météorites
             createMeteors(5);
-
-            // Ajouter une supernova
-            createSupernova();
 
             // Lancer l'animation
             animate();
@@ -66,13 +64,30 @@
             }
         }
 
-        // Fonction pour créer le soleil
+        // Fonction pour créer le soleil avec rayons lumineux
         function createSun() {
             const geometry = new THREE.SphereGeometry(5, 32, 32);
-            const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const material = new THREE.MeshStandardMaterial({
+                color: 0xffff00,
+                emissive: 0xffff00,
+                emissiveIntensity: 1
+            });
             sun = new THREE.Mesh(geometry, material);
             sun.position.set(0, 0, 0);
             scene.add(sun);
+
+            // Création des rayons lumineux (effet God Ray)
+            const godRayGeometry = new THREE.CylinderGeometry(0.1, 0.1, 100, 100);
+            const godRayMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                transparent: true,
+                opacity: 0.1
+            });
+
+            godRays = new THREE.Mesh(godRayGeometry, godRayMaterial);
+            godRays.position.set(0, 0, 0);
+            godRays.rotation.x = Math.PI / 2;
+            scene.add(godRays);
         }
 
         // Fonction pour créer des planètes aléatoires
@@ -107,15 +122,6 @@
             }
         }
 
-        // Fonction pour créer une supernova (simple éclat lumineux)
-        function createSupernova() {
-            const geometry = new THREE.SphereGeometry(10, 16, 16);
-            const material = new THREE.MeshBasicMaterial({ color: 0xff00ff, emissive: 0xff00ff });
-            const supernova = new THREE.Mesh(geometry, material);
-            supernova.position.set(Math.random() * 200 - 100, Math.random() * 200 - 100, Math.random() * 200 - 100);
-            scene.add(supernova);
-        }
-
         // Fonction d'animation
         function animate() {
             requestAnimationFrame(animate);
@@ -133,13 +139,13 @@
                 meteor.position.z += Math.random() * 0.1 - 0.05;
             });
 
-            // Rotation des étoiles (juste pour l'effet visuel)
+            // Rotation des étoiles
             stars.forEach(star => {
                 star.rotation.x += 0.0005;
                 star.rotation.y += 0.0005;
             });
 
-            // Mise à jour de la caméra (déplacement lent pour une vue d'ensemble)
+            // Mise à jour de la caméra
             camera.position.x += Math.sin(clock.getElapsedTime() * 0.1) * 0.05;
             camera.position.y += Math.cos(clock.getElapsedTime() * 0.1) * 0.05;
 
